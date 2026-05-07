@@ -1,0 +1,79 @@
+<!-- (C) 2023 - Roberto Canonico -->
+<h1>Lab #4</h1>
+<h2>Two hosts and a DHCP server</h2>
+<p>The purpose of this lab is to show how IP addresses can be assigned to end-systems by means of a DHCP server.</p>
+<p>NOTICE: this lab requires the GNS3 VM to instantiate a Docker container of a Linux-based DHCP server.</p>
+<h3>Preparation steps</h3>
+The procedure described here will be executed only once. Its purpose is to give GNS3 the ability to instantiate a Docker container of a Linux-based DHCP server. This component will be also used in further labs. This preparation step, however, will not be repeated. 
+<ol>
+  <li>In GNS3 go to <i>Edit</i>/<i>Preferences...</i> and select <i>Docker container templates</i> from the panel on the left of the <i>Preferences</i> window.</li> 
+  <li>Click on <i>New</i>.</li>
+  <li>Select the <i>Run this Docker container on the GNS3 VM</i> option and press <i>Next</i>.</li>
+  <li>Choose the <i>New image</i> action.</li>
+  <li>Type <b>rcanonico/alpine-dhcp-server:latest</b> in the <i>Image name</i> textbox and press <i>Next</i>.</li>
+  <li>Change the template name in <i>dhcp-nat</i> and press <i>Next</i>.</li>
+  <li>Specify <b>2</b> as the number of adapters you want this container to use and click <i>Next</i>.</li>
+  <li>Specify <b>/bin/sh</b> as the <i>Start command</i> textbox and click <i>Next</i>.</li>
+  <li>Leave the console type set to <i>telnet</i> and click <i>Next</i>.</li>
+  <li>Specify the following environment variables in the Environment textbox and click <i>Next</i>.</li>
+<pre>
+ETH0_IP=192.168.30.1
+ETH0_SUBNET=192.168.30.0
+ETH0_NETMASK=255.255.255.0
+LAN_IFACE=eth0
+WAN_IFACE=eth1
+</pre>
+  <li>Click <i>Finish</i> to complete this configuration process. <i>dhcp-nat</i> will now appear in the list of available Docker container templates.</li>
+  <li>In the Preferences window, select <i>dhcp-nat</i> from the list of available Docker container templates and click <i>Edit</i>.</li> 
+  <li>In the <i>Docker container template configuration</i> window that appears, choose the <i>Routers</i> category.</li> 
+  <li>In the same window, choose the <i>Browse...</i> button, select the router symbol from the <i>Classic</i> set of icons and press <i>OK</i>.</li>
+  <li>Press <i>OK</i> to close the <i>Docker container template configuration</i> window.</li>
+</ol>
+Notice that the first time that the <i>dhcp-nat</i> component will be added to a GNS3 project, the Docker container image will be pulled from Docker Hub repository. This will require a few seconds.
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/dhcp.png" alt="lab8-topology" width="300"/>
+  <li>When the devices are still inactive, right-click on the <i>dhcp-nat-1</i> icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.</li>
+  <li>Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-configuration-edit.png" alt="router-configuration" width="600"/>
+<br>&nbsp;<br>
+
+  <li>Start all devices.</li> 
+  <li>Open dhcp-nat-1 terminal and execute the start.sh script with the command:</li>  
+  <pre>./start.sh</pre>
+&nbsp;
+<img src="images/dhcp-server-start.png" alt="lab8-pc1-dhcp" width="520"/>
+&nbsp;
+  <li>Start capture on link connecting <i>Switch1</i> to <i>dhcp-nat-1</i>.</li> 
+
+  <li>Open PC1 terminal and execute the following command to configure PC1's NIC with an IP address obtained via DHCP:</li>  
+<pre>ip dhcp</pre>
+A sequence of DHCP messages (<i>Discover</i>, <i>Offer</i>, <i>Request</i>, <i>Ack</i>) is exchanged between PC1 and the DHCP server until an IP address (e.g. 192.168.30.6) is assigned to PC1.<br><br>
+<img src="images/pc1-dhcp.png" alt="lab8-pc1-dhcp" width="520"/>
+<br>
+  <li>Open PC2 terminal and execute the following command to configure PC2's NIC with an IP address obtained via DHCP:</li>  
+<pre>ip dhcp</pre>
+A sequence of DHCP messages (<i>Discover</i>, <i>Offer</i>, <i>Request</i>, <i>Ack</i>) is exchanged between PC2 and the DHCP server until an IP address (e.g. 192.168.30.7) is assigned to PC2.<br><br>
+<img src="images/pc2-dhcp.png" alt="lab8-pc2-dhcp" width="520"/>
+<br>
+      <li>In PC1 terminal execute the command to ping PC2:
+<pre>ping 192.168.30.7</pre>
+      and verify that answers are received.</li>
+<img src="images/pc1-ping-pc2.png" alt="lab8-pc1-ping-pc2" width="520"/>
+<br>
+
+</ol>
+
+<hr/>
+<h3>Packet capture analysis</h3>
+<p>The picture below shows the packets captured by Wireshark running on the link connecting Switch1 to dhcp-nat-1 during DHCP sequence.</p>
+<img src="images/capture-dhcp-1.png" alt="lab8-wireshark" width="800"/>
+<p></p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>
