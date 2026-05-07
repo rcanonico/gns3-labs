@@ -1,0 +1,55 @@
+<!-- (C) 2023 - Roberto Canonico -->
+<h1>Lab #5</h1>
+<h2>Two hosts, a DHCP/NAT router and a NAT cloud</h2>
+<p>The purpose of this lab is to show how end-systems attached to a private LAN can reach hosts in the public Internet by means of a NAT router.</p>
+<p>NOTICE: this lab requires the GNS3 VM to instantiate a Docker container of a Linux-based DHCP server.</p>
+<h2>Preparation steps</h2>
+This lab requires the dhcp-nat Docker container created in Lab #4.<br>
+This lab also uses the NAT cloud component of GNS3. This latter component implements a NAT functionality and allows systems in a GNS3 network to interact with hosts in the public Internet.
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/dhcp-nat.png" alt="lab9-topology" width="500"/>
+  <li>When the devices are still inactive, right-click on the <i>dhcp-nat-1</i> icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.</li>
+  <li>Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-configuration-edit.png" alt="router-configuration" width="700"/>
+<br>&nbsp;<br>
+
+  <li>Start all devices.</li> 
+  <li>Open dhcp-nat-1 terminal and execute the start.sh script with the command:</li>  
+  <pre>./start.sh</pre>
+&nbsp;
+<img src="images/dhcp-server-start.png" alt="lab8-pc1-dhcp" width="520"/>
+&nbsp;
+  <li>Start capture on link connecting <i>Switch1</i> to <i>dhcp-nat-1</i>.</li> 
+
+  <li>Open PC1 terminal and execute the following command to configure PC1's NIC with an IP address obtained via DHCP:</li>  
+<pre>ip dhcp</pre>
+A sequence of DHCP messages (<i>Discover</i>, <i>Offer</i>, <i>Request</i>, <i>Ack</i>) is exchanged between PC1 and the DHCP server until an IP address (e.g. 192.168.30.6) is assigned to PC1.<br><br>
+<img src="images/pc1-dhcp.png" alt="lab8-pc1-dhcp" width="520"/>
+<br>
+&nbsp;
+      <li>In PC1 terminal execute the command to ping the external host on the public Internet at the IP address 8.8.8.8:
+<pre>ping 8.8.8.8</pre>
+      and verify that answers are received.</li>
+<br>
+<img src="images/pc1-ping-external.png" alt="lab8-pc1-ping-external" width="520"/>
+<br>
+
+</ol>
+
+<hr/>
+<h3>Packet capture analysis</h3>
+<p>The picture below shows the packets captured by Wireshark running on the link connecting Switch1 to dhcp-nat-1 during ping.</p>
+<img src="images/capture-nat-1.png" alt="lab9-wireshark-1" width="1000"/>
+<p>The picture below shows the packets captured by Wireshark running on the link connecting dhcp-nat-1 to NAT1 during ping.</p>
+<img src="images/capture-nat-2.png" alt="lab9-wireshark-2" width="1000"/>
+<p>Notice that ICMP packets generated from PC1 (echo requests) have the IP source address translated from 192.168.30.6 into 192.168.122.109. <br>
+Conversely, incoming ICMP packets (echo replies) have the IP destination address translated fron 192.168.122.109 into 192.168.30.6</p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>
