@@ -1,0 +1,70 @@
+<!-- (C) 2022-2026 - Roberto Canonico -->
+<h1>Lab #3</h1>
+<h2>Two LANs connected by two routers</h2>
+<p>The purpose of this lab is to show how two LANs can be connected by means of  two routers. <br>
+This situation happens, for instance, when two LANs are located in two geographically separated sites.</p>
+<h3>Preparation steps</h3>
+This lab requires the GNS3 VM to instantiate a Docker container of a Linux-based router. <br>
+In particular, it requires that you have already executed once the preparation steps described for Lab #2.  
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/two-routers.png" alt="lab4-topology" width="700"/>
+  <li>When the devices are still inactive, right-click on the <i>frr-1</i> router icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.</li>
+  <li>Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-1-configuration.png" alt="router-1-configuration" width="520"/>
+<br>&nbsp;<br>
+
+  <li>Subsequently, right-click on the <i>frr-2</i> router icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.</li>
+  <li>Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-2-configuration.png" alt="router-2-configuration" width="520"/>
+<br>&nbsp;<br>
+  <li>Start all devices.</li> 
+  <li>Open PC1 terminal and execute the following commands:</li>  
+<pre>ip 192.168.10.2/24 192.168.10.1
+save</pre>
+  <li>Open PC2 terminal and execute the following commands:</li>  
+<pre>ip 192.168.20.2/24 192.168.20.1
+save</pre>
+ <li>Start capture on link connecting <i>frr-2</i> to PC2.</li> 
+ <li>In PC1 terminal execute the command:
+<pre>ping 192.168.10.1 -c 3</pre>
+      and verify that answers are received from the default gateway.</li>
+ <li>In PC1 terminal execute the command:
+<pre>ping 192.168.20.2 -c 3</pre>
+      and verify that answers are NOT received from PC2.</li>
+&nbsp;
+<div style="border: 2px dotted red; padding: 1px;">
+This happens because <i>frr-1</i>'s routing table has no entries matching the destination IP address 192.168.20.2.
+</div>
+&nbsp;
+  <li>Right-click on the <i>frr-1</i> router icon and select the <i>Auxiliary console</i> option.</li>
+  <li>In <i>frr-1</i> terminal, type the command:</li>
+<pre>route add -net 192.168.20.0/24 gw 10.10.10.2</pre>
+ <li>In PC1 terminal execute the command:
+<pre>ping 192.168.20.2 -c 3</pre>
+      and verify that answers are still NOT received from PC2.</li>
+&nbsp;
+<div style="border: 2px dotted red; padding: 1px;">
+Now, ICMP echo request packets are actually delivered to PC2. The ping, however, does not work because ICMP echo reply packets do not find their way to PC1.<br>
+In fact, <i>frr-2</i>'s routing table has no entries matching PC1's address 192.168.10.2.</div>
+&nbsp;
+  <li>Right-click on the <i>frr-2</i> router icon and select the <i>Auxiliary console</i> option.</li>
+  <li>In <i>frr-2</i> terminal, type the command:</li>
+<pre>route add -net 192.168.10.0/24 gw 10.10.10.1</pre>
+ <li>In PC1 terminal execute again the command:
+<pre>ping 192.168.20.2 -c 3</pre>
+      and verify that answers from PC2 are now received.</li>
+
+ <li>In PC2 terminal execute the command:
+<pre>ping 192.168.10.2 -c 3</pre>
+      and verify that answers from PC1 are received.</li>
+</ol>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>April 30, 2026</i> by Roberto Canonico</p>
