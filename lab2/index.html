@@ -1,0 +1,85 @@
+<!-- (C) 2022 - Roberto Canonico -->
+<h1>Lab #2</h1>
+<h2>Two LANs connected by a router</h2>
+<p>The purpose of this lab is to show how two LANs can be connected by means of a router.</p>
+<p>NOTICE: this lab requires the GNS3 VM to instantiate a Docker container of a Linux-based router.</p>
+<h3>Preparation steps</h3>
+The procedure described here will be executed only once. Its purpose is to give GNS3 the ability to instantiate a Docker container of a Linux-based router based on the FRR (<a href="https://frrouting.org/">Free Range Routing</a>) software suite. <br>
+This component will be also used in further labs. This preparation step, however, will not be repeated. 
+<ol>
+  <li>Check that the GNS3 VM has the IP forwarding feature enabled in the Linux kernel. 
+    <ul>
+    <li>Open a shell in the GNS3 VM and check that the command <code>sysctl net.ipv4.ip_forward</code> <br>
+        returns<br> 
+        <code>net.ipv4.ip_forward = 1</code><br>
+        This kernel option should already be enabled in the <code>/etc/sysctl.d/99-sysctl.conf</code> configuration file which is read at startup of the GNS3 VM. 
+    </li>
+    <li>
+        If the previuos command returns 0, you may enable IP forwarding by issuing the command:<br>
+        <code>sudo sysctl -w net.ipv4.ip_forward=1</code> <br>
+        To make this setting permanent, you have to edit the <code>/etc/sysctl.conf</code> file by adding the line: <br>
+        <code>net.ipv4.ip_forward = 1</code><br>
+        and then issue the command <code>sudo sysctl -p</code> to apply the modifications.
+    </li>
+    </ul>
+  </li>
+  <li>In GNS3 go to <i>Edit</i>/<i>Preferences...</i> and select <i>Docker container templates</i> from the panel on the left of the <i>Preferences</i> window.</li> 
+  <li>Click on <i>New</i>.</li>
+  <li>Select the <i>Run this Docker container on the GNS3 VM</i> option and press <i>Next</i>.</li>
+  <li>Choose the <i>New image</i> action.</li>
+  <li>Type <b>frrouting/frr:latest</b> in the <i>Image name</i> textbox and press <i>Next</i>.</li>
+  <li>Confirm the default <i>frrouting-frr</i> name for the template and press <i>Next</i>.</li>
+  <li>Specify <b>3</b> as the number of adapters you want this container to use and click <i>Next</i>.</li>
+  <li>Leave blank the <i>Start command</i> textbox and click <i>Next</i>.</li>
+  <li>Leave the console type set to <i>telnet</i> and click <i>Next</i>.</li>
+  <li>Click <i>Finish</i> to complete this configuration process. <i>frrouting-frr</i> will now appear in the list of available Docker container templates.</li>
+  <li>In the Preferences window, select <i>frrouting-frr</i> from the list of available Docker container templates and click <i>Edit</i>.</li> 
+  <li>In the <i>Docker container template configuration</i> window that appears, choose the <i>Routers</i> category.</li> 
+  <li>In the same window, choose the <i>Browse...</i> button, select the router symbol from the <i>Classic</i> set of icons and press <i>OK</i>.</li>
+  <li>Press <i>OK</i> to close the <i>Docker container template configuration</i> window.</li>
+</ol>
+Notice that the first time that the <i>frrouting-frr</i> component will be added to a GNS3 project, the Docker container image will be pulled from Docker Hub repository. This will require a few seconds.
+
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/one-router.png" alt="lab3-topology" width="700"/>
+  <li>When the devices are still inactive, right-click on the router icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.</li>
+  <li>Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-configuration-edit.png" alt="router-configuration" width="520"/>
+<br>&nbsp;<br>
+  <li>Start all devices.</li> 
+  <li>Open PC1 terminal and execute the following:</li>  
+    <ul>
+      <li>assign IP address 192.168.10.2 with netmask /24 and default gateway address 192.168.10.1 to PC1 with the command:</li>
+<pre>ip 192.168.10.2/24 192.168.10.1</pre>
+      <li>make this the automatic default configuration at startup for PC1 by issuing the command <pre>save</pre> at command prompt.</li>
+    </ul>
+  <li>Open PC2 terminal and execute the following:</li>  
+    <ul>
+      <li>assign IP address 192.168.20.2 with netmask /24 and default gateway address 192.168.20.1 to PC2 with the command:</li>
+<pre>ip 192.168.20.2/24 192.168.20.1</pre>
+      <li>make this the automatic default configuration at startup for PC2 by issuing the command <pre>save</pre> at command prompt.</li>
+    </ul>
+      <li>Start capture on link connecting <i>Hub2</i> to PC2.</li> 
+</ol>
+
+
+<h3>Traffic generation</h3>
+Open PC1 terminal and execute the following: 
+<pre>ping 192.168.20.2</pre>
+and verify that answers are received.<br>
+Press ctrl-C at any time to stop ping.
+
+<h3>Packet capture analysis</h3>
+<p>The picture above shows the packets captured by Wireshark running on the link connecting Hub2 to PC2. Ignore ICMPv6 packets no.1 and no. 12.</p>
+<br>
+<img src="images/capture-one-router.png" alt="lab3-wireshark" width="800"/>
+<p></p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>
