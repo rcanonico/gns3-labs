@@ -1,0 +1,59 @@
+<!-- (C) 2022 - Roberto Canonico -->
+<h1>Lab #9</h1>
+<h2>A switch with two isolated VLANs</h2>
+<p>The purpose of this lab is to show how VLANs create separate broadcast domains.</p>
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/screenshot-vlan-1.png" alt="lab4-topology" width="500"/>
+  <li>When the devices are still inactive, right-click on the <i>SW1</i> switch icon and configure it as follows:</li>
+  <ul>
+  <li>port 0 configured in trunk mode (802.1q) and assigned natively to VLAN 1 (actually, this port is not used in this lab);</li>
+  <li>ports 1, 2, 3, 4 configured in access mode and assigned to VLAN 1 (default VLAN);</li>
+  <li>ports 5, 6, 7 configured in access mode and assigned to VLAN 2.</li>
+<br><img src="images/sw1-config-768x531.png" alt="switch-configuration" width="520"/>
+<br>&nbsp;<br>
+  </ul>
+  <li>Start all devices.</li> 
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 10.10.1.2/24 10.10.1.1</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 10.10.1.3/24 10.10.1.1</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 10.10.2.2/24 10.10.2.1</pre></li>
+ <li>Open PC4 terminal and execute the command:
+<pre>ip 10.10.2.3/24 10.10.2.1</pre></li>
+
+<p>
+Notice that PC1 and PC2 are configured with a default gateway address 10.10.1.1, but, in fact, this address is not associated to any device.<br>
+Likewise, PC3 and PC4 are configured with a default gateway address 10.10.2.1, but, in fact, this address is not associated to any device.
+</p>
+
+
+ <li>In PC1 terminal execute the command:
+<pre>ping 10.10.1.3</pre>
+      and verify that answers are received from PC2.
+<pre>ping 10.10.2.2</pre>
+      and verify that answers are NOT received from PC3.
+ </li>
+<br><img src="images/PC1-vlan-1.png" alt="PC1-terminal" width="520"/>
+<br>&nbsp;<br>
+
+ <li>In PC3 terminal execute the command:
+<pre>ping 10.10.2.3</pre>
+      and verify that answers are received from PC4.
+<pre>ping 10.10.1.2</pre>
+      and verify that answers are NOT received from PC1.
+ </li>
+</ol>
+
+<p>
+Since there is no inter-VLAN routing, the two VLANs are isolated.<br>
+Hence, PC1 can only ping PC2, while PC3 can only ping PC4.
+</p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>24/09/2024</i> by Roberto Canonico</p>
