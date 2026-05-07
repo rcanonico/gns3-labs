@@ -1,0 +1,90 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #14</h1>
+<h2>Open vSwitch as Layer-3 router</h2>
+
+<p>The purpose of this lab is to show how how it is possible to use Open vSwitch (OVS) as a Layer-3 switch to route packets across VLANs.<br>
+Differently from what was shown in <a href="../lab11/">Lab #11</a>, we will achieve this result not using an external router.</p>
+
+<h3>Introduction</h3>
+To achieve our goal, we need to modify the configuration of the default Open vSwitch appliance we added to GNS3 in <a href="../lab13/">Lab #13</a>.<br>
+The OVS appliance is configured so that the container has 16 NICs (eth0, eth1, ..., eth15).<br>
+Interface eth0 is left for management purposes.<br>
+All the other interfaces are connected as ports to OVS instance br0.<br>
+Other three switches are created (br1, br2 and br3) but are unused.<br>
+For our purposes, we need to create as many OVS instances as the number of VLANs we want to manage: two in our experiment.<br>
+Then we need to attach each of the NICs to the corresponding VLAN OVS instance.<br>
+Finally, we need to assign an IP address to each VLAN OVS instance. These IP addresses will be used as default gateway addresses by VLAN hosts.<br>
+Routing between directly attached VLANs will be automatically performed by the OVS instance, provided that IPv4 forwarding has been enabled (see <a href="../lab2/">Lab #2</a>).<br>
+The following picture shows the internal configuration we need to reproduce in the OVS instance after that it has been connected and started.
+<br>
+<div style="text-align: center;"><br><img src="images/ovs-internal-conf.png" alt="ovs-internal-conf" width="300"/></div>
+<br>&nbsp;<br>
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Create the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/ovs-vlan-1.png" alt="lab13-topology" width="500"/>
+<br>&nbsp;<br>
+  <li>Start all devices.</li>
+ <li>Open PC1 terminal and execute the commands:
+<pre>
+ip 10.10.1.2/24 10.10.1.1
+save
+</pre></li>
+ <li>Open PC2 terminal and execute the commands:
+<pre>
+ip 10.10.1.3/24 10.10.1.1
+save
+</pre></li>
+ <li>Open PC3 terminal and execute the commands:
+<pre>
+ip 10.10.2.2/24 10.10.2.1
+save
+</pre></li>
+ <li>Open PC4 terminal and execute the commands:
+<pre>
+ip 10.10.2.3/24 10.10.2.1
+save
+</pre></li>
+  <li>Open the Auxiliary Console of switch OVS-1 and execute the following commands:</li>
+<pre>
+ovs-vsctl del-br br0
+ovs-vsctl add-br br0
+ovs-vsctl add-br vlan1 br0 1
+ovs-vsctl add-br vlan2 br0 2
+ovs-vsctl add-port vlan1 eth1 tag=1
+ovs-vsctl add-port vlan1 eth2 tag=1
+ovs-vsctl add-port vlan2 eth8 tag=2
+ovs-vsctl add-port vlan2 eth9 tag=2
+ifconfig vlan1 10.10.1.1 netmask 255.255.255.0
+ifconfig vlan2 10.10.2.1 netmask 255.255.255.0
+</pre> 
+
+</ol>
+
+<h3>Traffic generation</h3>
+
+In PC1 terminal execute the following commands:
+<pre>
+ping 10.10.1.3 -c 2
+ping 10.10.2.2 -c 2
+ping 10.10.2.3 -c 2
+</pre>
+and verify that answers are received from all the devices.<br>
+
+<br><img src="images/PC1-vlan-ping.png" alt="PC1-terminal-ping" width="500"/><br>
+
+<br>In PC1 terminal execute the following commands:
+<pre>
+trace 10.10.1.3 -P 1
+trace 10.10.2.2 -P 1
+trace 10.10.2.3 -P 1
+</pre>
+and verify that packets to PC2 are directly forwarded from PC1, while packets to PC3 and PC4 are forwarded through the default gateway implemented by OVS in the switch.<br>
+
+<br><img src="images/PC1-vlan-trace.png" alt="PC1-terminal-trace" width="500"/><br>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 4, 2024</i> by Roberto Canonico</p>

@@ -1,0 +1,75 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #13</h1>
+<h2>Open vSwitch: A switch with two VLANs</h2>
+
+<p>The purpose of this lab is to show how to manage VLANs in a Open vSwitch (OVS).<br>
+This lab replicates <a href="../lab9/">Lab #9</a> by replacing GNS3's built-in switch with an Open vSwitch Docker container.
+</p>
+
+<h3>Preparation steps</h3>
+This lab requires the GNS3 VM to instantiate Docker containers of Linux-based routers. <br>
+In particular, it requires that you have have previously imported the <a target="_blank" href="https://www.openvswitch.org/">Open vSwitch</a> (OVS) appliance into GNS3 as described below. <br>
+Open vSwitch is a multilayer (MLS) virtual switch licensed under the open-source Apache 2.0 license. We can add OVS to GNS3 very quickly using a GNS3 OVS appliance. <br/>
+
+<ul>
+  <li>Download and locally save the <a target="_blank" href="https://www.gns3.com/marketplace/appliances/open-vswitch-with-management-interface">Open vSwitch management</a> GNS3 appliance definition from the GNS3 marketplace. <br>
+We recommend to use this appliance that creates an OVS switch with the eth0 interface used for management and all other interfaces connected to the br0 internal software bridge.</li>
+  <li>Import the appliance into GNS3 by choosing the File ==&gt; "Import appliance" menu option and selecting the previously downloaded <i>openvswitch-management.gns3a</i> file and then choosing to "Install the appliance into the GNS3 VM". <br>
+The OVS icon will appear in the "Switches" device category in GNS3. <br>
+We also customized the device icon (this step is purely esthetic and hence optional).</li>
+</ul>
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Create the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/ovs-vlan-1.png" alt="lab13-topology" width="500"/>
+<br>&nbsp;<br>
+  <li>Start all devices.</li>
+  <li>Open the Auxiliary Console of switch OVS-1 and execute the following commands:</li>
+<pre>
+ovs-vsctl set port eth1 tag=1
+ovs-vsctl set port eth2 tag=1
+ovs-vsctl set port eth8 tag=2
+ovs-vsctl set port eth9 tag=2
+</pre> 
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 10.10.1.2/24 10.10.1.1</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 10.10.1.3/24 10.10.1.1</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 10.10.2.2/24 10.10.2.1</pre></li>
+ <li>Open PC4 terminal and execute the command:
+<pre>ip 10.10.2.3/24 10.10.2.1</pre></li>
+
+</ol>
+
+<p>
+Notice that PC1 and PC2 are configured with a default gateway address 10.10.1.1, but, in fact, this address is not associated to any device.<br>
+Likewise, PC3 and PC4 are configured with a default gateway address 10.10.2.1, but, in fact, this address is not associated to any device.
+</p>
+
+<h3>Traffic generation</h3>
+
+In PC1 terminal execute the following commands:
+<pre>
+ping 10.10.1.3
+ping 10.10.2.2
+</pre>
+and verify that answers are received from PC2 but NOT from PC3.<br>
+
+<br><img src="images/PC1-vlan-1.png" alt="PC1-terminal" width="500"/><br>
+
+<br>In PC3 terminal execute the command:
+<pre>
+ping 10.10.2.3
+ping 10.10.1.2
+</pre>
+and verify that answers are received from PC4 but NOT from PC1.<br>
+
+Since there is no inter-VLAN routing, the two VLANs are isolated.<br>
+Hence, PC1 can only ping PC2, while PC3 can only ping PC4.
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 4, 2024</i> by Roberto Canonico</p>

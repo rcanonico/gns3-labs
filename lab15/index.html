@@ -1,0 +1,125 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #15</h1>
+<h2>Open vSwitch: Spanning Tree Protocol (STP)</h2>
+<p>The purpose of this lab is to show how <i>STP (Spanning Tree Protocol)</i> works in a simple network scenario.</p>
+
+<h3>Introduction</h3>
+The <a target="_blank" href="https://en.wikipedia.org/wiki/Spanning_Tree_Protocol"><b>Spanning Tree Protocol (STP)</b></a> is a network protocol that builds a loop-free logical topology for Ethernet networks. <br/>
+The basic function of STP is to prevent bridge loops and the resulting <a target="_blank" href="https://en.wikipedia.org/wiki/Broadcast_storm">broadcast storm effect</a> by selectively disabling links while keeping full connectivity among nodes.<br/> 
+STP allows a network design to include backup links providing fault tolerance if an active link fails.<br/>
+In this lab we will create a simple network made of three swithes onnected in a triangle topology. <br/>
+STP disables one of the ports of the three switches to block infinite recirculation of packets and prevent broadcast storms.
+ 
+<h3>Preparation steps</h3>
+This lab requires the GNS3 VM to instantiate Docker containers of Linux-based routers. <br/>
+In particular, it requires that you have already executed once the preparation steps described for <a href="../lab13">Lab #13</a>.
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab. <br/>
+Ignore the fact that one link appears as a dashed red line (this was achieved by editing the style of the line representing the link).</li>
+<br/>
+<img src="images/lab15-topology.png" alt="lab-topology" width="400"/>
+<br/>
+  <li>Start the OVS-1 switch and right-click on its icon to open an <i>Auxiliary Console</i> terminal.</li>
+  <li>At the root command prompt, use <code> vi /etc/openvswitch/start.sh</code> to create the following script.</li>
+<pre>
+#!/bin/sh
+ovs-vsctl set Bridge br0 stp_enable=true
+sysctl -w net.ipv6.conf.all.disable_ipv6=1
+sysctl -w net.ipv6.conf.default.disable_ipv6=1
+</pre>
+  <li>Then make the script executable with <code>chmod 755 /etc/openvswitch/start.sh</code></li>
+  <li>Execute the script with <code>/etc/openvswitch/start.sh</code>. This will enable STP and disable IPv6 in the switch.</li>
+  <li>Do the same for switches OVS-2 and OVS-3.</li> 
+  <li>Execute the command <code>ovs-appctl stp/show</code> in all of the three switches to check STP status.</li>  
+  <li>Start PC1 and execute the following commands in its terminal:</li>
+<pre>ip 192.168.10.2/24</pre>
+<pre>save</pre>
+  <li>Do the same for PC2, PC3 and PC4, by assigning to them the IP addresses 192.168.10.3, 192.168.10.4 and 192.168.10.5, respectively.</li>
+  <li>Start capture on link connecting <i>OVS1</i> to <i>OVS2</i>.</li> 
+  <li>Start capture on link connecting <i>OVS1</i> to <i>OVS3</i>.</li> 
+  <li>Start capture on link connecting <i>OVS2</i> to <i>OVS3</i>.</li> 
+  <li>In PC1 terminal execute the commands:
+<pre>ping 192.168.10.3</pre>
+<pre>ping 192.168.10.4</pre>
+<pre>ping 192.168.10.5</pre>
+      and verify that answers are received.</li>
+
+</ol>
+
+<h3>Experiment results</h3>
+<p>We first understand how STP worked in this topology, then we will analyze packet captures on the three links connecting the switches.</p>
+<h4>STP status of OVS switches</h4>
+In the auxiliary terminal of switches OVS-1, OVS-2 and OVS-3 execute the command:
+<pre>ovs-appctl stp/show</pre>
+and inspect that resulting output.<br/><br/>
+<b>NOTE:</b> <i>Be aware that different results might be obtained in another experiment setup, due to the random MAC addresses assigned to the switches.</i><br/><br/>
+In our case, we obtained that:
+<ul>
+<li>Of the three switches, the <b>root switch</b> is OVS-2 (with a <i>Root Bridge ID</i> equal to d6:7b:51:7f:f5:41).</li>
+<li>For switch <b>OVS-1</b>, port <code>eth2</code> is the <b>root port</b> (i.e. the port connecting the switch to the shortest path towards the root switch; all the ports are in <i>forwarding</i> state.</li>
+<li>For switch <b>OVS-2</b>, that is <b>root switch</b>, all the ports are in <i>forwarding</i> state.</li>
+<li>For switch <b>OVS-3</b>, port <code>eth4</code> is the <b>root port</b>;  port <code>eth1</code> is in <i>blocked</i> state, all the other ports are in <i>forwarding</i> state.</li>
+
+</ul>
+ 
+<h4>Analysis of packet traces</h4>
+By analysing the packet traces captured with Wireshark on the three links connecting the switches, we notice that:
+<ul>
+<li>The first ping, from PC1 towards PC2, generated a broadcast ARP request (<i>Who has 192.168.10.3? Tell 192.168.10.2</i>).<br/>
+This packet is forwarded by OVS-2 to OVS-1 and OVS-3.<br/>
+The same packet is also forwarded by OVS-1 on the link connecting it to OVS-3.<br/>
+Switch OVS-3, having port <code>eth1</code> in <i>blocked</i> state, does not receive the broadcast packet forwarded by OVS-1 and does not forward the packet received from OVS-2 upwards to OVS-1.<br/>
+<b><i>This prevents broadcast packets to circulate in the loop formed by the three switches</i></b>.</li> 
+<li>Since PC2 is also connected to the OVS-2 switch, the corresponding ARP reply generated by PC2 (<i>192.168.10.3 is at 00:50:79:66:68:01</i>), which is unicast transmitted to the sender of the ARP request, is not captured on the links connecting OVS-2 with OVS-1 and OVS-3.</li>
+<li>Likewise, subsequent ICMP echo request and ICMP echo reply exchanged by PC1 and PC2, being transmitted as unicast packets, are not captured on the links connecting OVS-2 with OVS-1 and OVS-3.</li>
+<li>The second ping, from PC1 towards PC3, generated a broadcast ARP request (<i>Who has 192.168.10.4? Tell 192.168.10.2</i>).<br/>
+This packet is forwarded by OVS-2 to OVS-1 and OVS-3.<br/>
+The same packet is also forwarded by OVS-1 on the link connecting it to OVS-3.<br/>
+Switch OVS-3, having port <code>eth1</code> in <i>blocked</i> state, does not receive the broadcast packet forwarded by OVS-1 and does not forward the packet received from OVS-2 upwards to OVS-1.</li>
+<li>Since PC3 is connected to the OVS-3 switch, the corresponding ARP reply generated by PC3 (<i>192.168.10.4 is at 00:50:79:66:68:02</i>), which is unicast transmitted to the sender of the ARP request, appears on the link connecting OVS-2 and OVS-3.</li>
+<li>Likewise, subsequent ICMP echo request and ICMP echo reply exchanged by PC1 and PC3, being transmitted as unicast packets, appear on the link connecting OVS-2 and OVS-3.</li>
+<li>The third ping, from PC1 towards PC4, generated a broadcast ARP request (<i>Who has 192.168.10.5? Tell 192.168.10.2</i>).<br/>
+For this packet, the corresponding ARP reply generated by PC4, and the subsequent ICMP echo request and ICMP echo reply exchanged by PC1 and PC4, hold the same considerations made above for the second ping.</li>
+</ul>
+
+<h4>STP reconfiguration after link failure</h4>
+To prove that STP allows switches to react to link failures and topology changes, we will disable the link connecting the switch OVS-2 and OVS-3.<br/> 
+<br/>
+<br/>
+<img src="images/link-suspended.png" alt="lab-topology" width="300"/>
+<br/>
+<br/>
+This link, in the previuos network state, was actively used to carry packets exchanged by hosts on the left (PC1 and PC2) and hosts on the right (PC3 and PC4). <br/>
+We will verify that, after disabling the horizontal link, switch OVS-3 brings its port <code>eth1</code> from <i>blocked</i> state to <i>forwarding</i> state.<br/> 
+In this way, packets exchanged by PC1 and PC3 will follow the route passing for OVS-1.</b>
+<ul>
+<li>In PC1 terminal execute the command:
+<pre>ping 192.168.10.4 -c 120</pre>
+to start an exhange of ICMP packets between PC1 and PC3.
+</li> 
+<li>At some point, disable the link connecting OVS-2 and OVS-3 (right-click on the link and select "Disable").</li>
+<li>Verify that <code>ping</code> shows ICMP timeouts for several seconds, then ICMP replies appear again.</li>
+<pre>
+84 bytes from 192.168.10.4 icmp_seq=13 ttl=64 time=7.993 ms
+84 bytes from 192.168.10.4 icmp_seq=14 ttl=64 time=9.850 ms
+192.168.10.4 icmp_seq=15 timeout
+192.168.10.4 icmp_seq=16 timeout
+....
+192.168.10.4 icmp_seq=38 timeout
+84 bytes from 192.168.10.4 icmp_seq=39 ttl=64 time=18.276 ms
+84 bytes from 192.168.10.4 icmp_seq=40 ttl=64 time=10.211 ms
+</pre>
+<li>This shows that the network was able to reconfigure to restore connectivity.</li>
+<li>In the auxiliary terminal of OVS-3 execute the command:
+<pre>ovs-appctl stp/show</pre>
+and verify that port <code>eth1</code>, which before was in <i>blocked</i> state, is now in <i>forwarding</i> state.</li>
+
+</ul>
+
+<br/>
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>

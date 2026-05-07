@@ -1,0 +1,63 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #17</h1>
+<h2>Open vSwitch: Multicast transmission in a LAN with IGMP snooping</h2>
+<p>The purpose of this lab is to show how <i>IGMP snooping</i> is able to filter multicast IP traffic in a LAN context.</p>
+
+<h3>Preparation steps</h3>
+This lab requires the GNS3 VM to instantiate Docker containers of Linux-based routers. <br>
+In particular, it requires that you have already executed once the preparation steps described for <a href="../lab12">Lab #12</a> and <a href="../lab13">Lab #13</a>.
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3.</li>
+<img src="images/topology.png" alt="lab-topology" width="520"/>
+  <li>Right-click on <i>mcjoin-1</i> and select "Edit config" to modify its network configuration to assign the <b>192.168.0.2</b> IP address to the <i>eth0</i> interface with netmask <b>255.255.255.0</b>.
+<br><img src="images/mcjoin-config.png" alt="mcjoin-1-config" width="520"/><br>
+  <li>Do the same for <i>mcjoin-2</i> and <i>mcjoin-3</i> to assign to their <i>eth0</i> interfaces the IP addresses <b>192.168.0.3</b> and <b>192.168.0.4</b> (with netmask <b>255.255.255.0</b>), respectively.</li> 
+  <li>Start all devices.</li> 
+  <li>Start capture on link connecting <i>OpenvSwitch-1</i> to <i>mcjoin-2</i>.</li> 
+  <li>Start capture on link connecting <i>OpenvSwitch-1</i> to <i>mcjoin-3</i>.</li> 
+  <li>Right-click on <i>OpenvSwitch-1</i>, <i>mcjoin-1</i>, <i>mcjoin-2</i> and <i>mcjoin-3</i> to open their Auxiliary Console terminal</li>  
+  <li>In the <i>OpenvSwitch-1</i> terminal and execute the following:</li>  
+    <ul>
+      <li><pre>ovs-vsctl set Bridge br0 mcast_snooping_enable=true</pre> to enable IGMP snooping</li>
+    </ul>
+  <li>In the <i>mcjoin-1</i> terminal execute the following:</li>  
+    <ul>
+      <li><pre>ping 192.168.0.3</pre> to verify that <i>mcjoin-1</i> can exchange packets with <i>mcjoin-2</i></li>
+      <li><pre>ping 192.168.0.4</pre> to verify that <i>mcjoin-1</i> can exchange packets with <i>mcjoin-3</i></li>
+    </ul>
+  <li>In the <i>mcjoin-2</i> terminal and execute the following:</li>  
+    <ul>
+      <li><pre>mcjoin 225.1.2.4</pre> to let <i>mcjoin-2</i> join the 225.1.2.4 multicast group.</li>
+    </ul>
+  <li>In the <i>mcjoin-1</i> terminal and execute the following:</li>  
+    <ul>
+      <li><pre>mcjoin -s 225.1.2.4</pre> to transmit packets to the 225.1.2.4 group; stop packet transmission after a few seconds by pressing ctrl-c at the command line.</li>
+    </ul>
+</ol>
+
+<h3>Expected results</h3>
+An IGMP snooping switch does not generate or respond to any multicast messages; instead it passively snoops on IGMP query, report, and leave (IGMP version 2) messages transferred between IP multicast routers/switches and IP multicast hosts to determine the multicast group membership.<br>
+Basically, this experiment should show that multicast packets transmitted by <i>mcjoin-1</i> to the 225.1.2.4 multicast group are transmitted by <i>OpenvSwitch-1</i> only to ports connected to end-systems that joined the group, i.e. <i>mcjoin-2</i> in our experiment.<br>
+The instance of Wireshark activated onto the link connecting <i>OpenvSwitch-1</i> to <i>mcjoin-3</i> should not show such packets. 
+ 
+<h3>Traffic analysis</h3>
+<img src="images/capture.png" alt="lab12-wireshark" width="800"/>
+<p></p>
+<p>Wireshark shows a sequence of UDP packets sent by 192.168.0.2 (<i>mcjoin-1</i>) to the multicast IP group 225.1.2.4.</p>
+<p>Notice that the MAC destination address for the Ethernet frames carrying the multicast IP packets sent to 225.1.2.4 is <i>01:00:5e:01:02:04</i>.<br>
+This address is computed according to what is described in 
+<a target="_blank" href="https://datatracker.ietf.org/doc/html/rfc1112#section-6.4">RFC-1112</a> (Section 6.4):.
+</p>
+<pre>An IP host group address is mapped to an Ethernet multicast address
+by placing the low-order 23-bits of the IP address into the low-order
+23 bits of the Ethernet multicast address 01-00-5E-00-00-00 (hex).
+Because there are 28 significant bits in an IP host group address,
+more than one host group address may map to the same Ethernet
+multicast address.</pre>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 4, 2024</i> by Roberto Canonico</p>

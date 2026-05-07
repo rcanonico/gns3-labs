@@ -1,0 +1,85 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #18</h1>
+<h2>Client-Server communication with TCP</h2>
+<p>The purpose of this lab is to show the fundamental steps to develop and test a client-server application in C and test it in GNS3.</p>
+<p>NOTICE: this lab requires the GNS3 VM to instantiate a Docker container of a Linux Ubuntu-based end-system.</p>
+
+<h3>Preparation steps</h3>
+The procedure described here will be executed only once. Its purpose is to give GNS3 the ability to instantiate Docker containers based on the Ubuntu Linux distribution. These containers will only contain a minimal set of software tools. Other tools will be manually installed from the official Ubuntu software repository by means of the <code>apt</code> command line tool.<br>
+<ol>
+  <li>In GNS3 go to <i>Edit</i>/<i>Preferences...</i> and select <i>Docker container templates</i> from the panel on the left of the <i>Preferences</i> window.</li> 
+  <li>Click on <i>New</i>.</li>
+  <li>Select the <i>Run this Docker container on the GNS3 VM</i> option and press <i>Next</i>.</li>
+  <li>Choose the <i>New image</i> action.</li>
+  <li>Type <b>ubuntu:latest</b> in the <i>Image name</i> textbox and press <i>Next</i>.</li>
+  <li>Confirm the default <i>Ubuntu</i> name for the template and press <i>Next</i>.</li>
+  <li>Confirm default values for all the parameters and click <i>Finish</i> to complete this configuration process.</li> 
+  <li><i>Ubuntu</i> will now appear in the list of available Docker container templates.</li>
+  <li>Press <i>OK</i> to close the <i>Docker container template configuration</i> window.</li>
+</ol>
+Notice that the first time that the <i>Ubuntu</i> component will be added to a GNS3 project, the Docker container image will be pulled from Docker Hub repository. This will require a few seconds.
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Notice that Client and Server are instances of the previously installed Ubuntu appliance.</li>
+<img src="images/lab18-topology.png" alt="lab18-topology" width="400"/><br></li>
+  <li>Right-click on <i>Client</i> and select "Edit config" to modify its network configuration to enable DHCP for configuration of its <i>eth0</i> interface.<br>
+<br><img src="images/Client-config.png" alt="Client-config" width="400"/><br></li>
+  <li>Right-click on <i>Server</i> and select "Edit config" to modify its network configuration to enable DHCP for configuration of its <i>eth0</i> interface.<br>
+<br><img src="images/Server-config.png" alt="Server-config" width="400"/><br></li>
+  <li>Start all devices.</li> 
+  <li>Open the Server console and use the command <code>ifconfig</code> to get the IP address assigned by DHCP to the Server.<br>
+ In our experiment this address is 192.168.122.127.<br>
+<br><img src="images/server-ifconfig.png" alt="server-ifconfig" width="500"/><br></li> 
+
+</ol>
+
+<h3>Code download and compilation</h3>
+Open Server terminal and execute the following commands at the root prompt: 
+<pre>
+cd
+mkdir socket-demo
+cd socket-demo/
+apt update
+apt install net-tools iputils-ping wget unzip build-essential
+wget https://github.com/rcanonico/socket-demo/archive/refs/heads/main.zip
+unzip main.zip
+cd socket-demo-main/
+make
+ls
+</pre>
+The <code>ls</code> command should show the following output showing the executable programs besides the source code files with the .c extension.<br> 
+Compilation was performed by <code>make</code> following directions in the Makefile.<br>
+<br><img src="images/ls-output.png" alt="ls-output" width="400"/><br>
+<br>
+Open Client terminal and execute the same sequence of commands listed above for the Server.<br>
+The <code>ls</code> command should show the same output produced on the Server.<br>
+ 
+<h3>Testing of Client and Server programs</h3>
+Run <code>ServerTCP</code> in the Server terminal. This will produce the following output.<br>
+<br><img src="images/server-run-1.png" alt="server-run-1" width="400"/><br>
+<br>
+Run <code>ClientTCP</code> in the Client terminal by specifying the Server IP address on the command line.<br>
+The client program will establish a connection to the server and will ask a sequence of characters from the stdin terminated by RETURN.<br>
+This sequence of characters will be sent to the server which in turn will reply with the same sequence of characters in uppercase.<br>
+This will produce the following output on the client.<br>
+<br><img src="images/client-run-1.png" alt="client-run-1" width="420"/><br>
+<br>
+The following picture shows the corresponding output produced in the Server terminal.<br>
+<br><img src="images/server-run-2.png" alt="server-run-2" width="400"/><br>
+<br>
+Open the Server auxiliary terminal and type the command <code>netstat -ant</code> at the root prompt.<br>
+This is the output you should get.<br>
+<br><img src="images/server-netstat-1.png" alt="server-netstat-1" width="500"/><br>
+<br>
+
+Finally, type QUIT in the Client terminal to halt the client program and teardown the connection to the server.<br>
+When the client program exits, type the command <code>netstat -ant</code> at the root prompt.<br>
+This is the output you should get.<br>
+<br><img src="images/client-netstat-1.png" alt="client-netstat-1" width="500"/><br>
+<br>
+ 
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>November 4, 2024</i> by Roberto Canonico</p>
