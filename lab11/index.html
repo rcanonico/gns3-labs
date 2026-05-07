@@ -1,0 +1,102 @@
+<!-- (C) 2022 - Roberto Canonico -->
+<h1>Lab #11</h1>
+<h2>Two VLANs connected by a router on a stick</h2>
+
+<p>The purpose of this lab is to show how two VLANs, created on a single switch, can be connected by means of a router. <br>
+The router-on-a-stick setup is shown, where a router with a single physical interface is assigned two different IP addresses associated to two different VLANs.</p>
+
+<h3>Preparation steps</h3>
+Before this experiment is executed, it is required that you have previously configured GNS3 to make it able to instantiate a Docker container of a Linux-based router based on the FRR (<a href="https://frrouting.org/">Free Range Routing</a>) software suite, as described in <a href="../lab3">Lab #3</a>.<br>
+In particular, the GNS3 VM in which Docker containers are activated should have:
+<ul>
+<li><b>IP forwarding enabled in the kernel;</b><br> 
+This can be verified by issuing at the router console the command:
+<pre>cat /proc/sys/net/ipv4/ip_forward</pre>
+and verifying that the obtained output is <b>1</b>.<br>
+This setting can be made permanent in the GNS3 VM by adding the line:
+<pre>net.ipv4.ip_forward = 1</pre>
+in the configuration file <b>/etc/sysctl.conf</b> that can be edited with the nano text editor through the command:
+<pre>sudo nano /etc/sysctl.conf</pre> 
+</li>
+<li><b>the kernel module 8021q loaded;</b><br> 
+This can be verified by issuing at the router console the command:
+<pre>modinfo 8021q</pre>
+This setting can be made permanent in the GNS3 VM by installing the vlan package:
+<pre>sudo apt install vlan</pre>
+If the 8021q module is not loaded after installation, you can use the following command to manually load the module:
+<pre>modprobe --first-time 8021q</pre> 
+
+</li>
+</ul> 
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Create the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/screenshot-vlan-2-1.png" alt="lab7-topology" width="500"/>
+<br>&nbsp;<br>
+  <li>When the devices are still inactive, right-click on the <i>SW1</i> switch icon and configure it as follows:</li>
+  <ul>
+  <li>port 0 configured in trunk mode (802.1q) and assigned natively to VLAN 1;</li>
+  <li>ports 1, 2, 3, 4 configured in access mode and assigned to VLAN 1 (default VLAN);</li>
+  <li>ports 5, 6, 7 configured in access mode and assigned to VLAN 2.</li>
+<br><img src="images/sw1-config-768x531.png" alt="switch-configuration" width="520"/>
+<br>&nbsp;<br>
+  </ul>
+  <li>When the devices are still inactive, right-click on the router icon and select the <i>Configure</i> option.</li>
+  <li>Press <i>Edit</i> to modify the router's network configuration.<br>
+      Modify the router's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/router-conf-vlan-2-768x502.png" alt="router-configuration" width="520"/>
+  </li>
+<br>&nbsp;<br>
+<br>The above configuration:<br>
+<ul>
+<li>assigns a static IP address 10.10.1.1 with netmask 255.255.255.0 to the <i>eth0</i> interface, that will exchange <i>untagged</i> frames;</li>
+<li>creates a <i>virtual</i> interface, <i>eth0.2</i>, configured with a static IP address 10.10.2.1 with netmask 255.255.255.0, that will exchange <i>802.1q tagged frames</i> with VLAN ID 2.</li>
+</ul>
+
+  <li>Start all devices.</li> 
+  <li>Verify router's configuration by issuing the <code>ifconfig</code> command at the router's console. <br>
+This command should produce the output as shown in the picture below.<br>
+<br><img src="images/router-ifconfig.png" alt="router-ifconfig" width="520"/>
+<br>&nbsp;<br>
+  The router forwards traffic between subnets 10.10.1.0/24 and 10.10.2.0/24 which are directly reachable from its interfaces <i>eth0</i> and </i>eth0.2</i> as shown by the <code>netstat -nr</code> command.<br>
+<br><img src="images/router-netstat.png" alt="router-netstat" width="520"/>
+<br>&nbsp;<br>
+
+  </li>
+
+  <li>Start capture on link connecting <i>SW1</i> to the router.</li> 
+
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 10.10.1.2/24 10.10.1.1</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 10.10.1.3/24 10.10.1.1</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 10.10.2.2/24 10.10.2.1</pre></li>
+ <li>Open PC4 terminal and execute the command:
+<pre>ip 10.10.2.3/24 10.10.2.1</pre></li>
+
+ <li>In PC1 terminal execute the command:
+<pre>ping 10.10.2.2</pre>
+      and verify that answers are received from PC3.
+ </li>
+<br><img src="images/pc1-ping-pc3.png" alt="PC1-ping-PC3" width="520"/>
+<br>&nbsp;<br>
+</ol>
+
+
+<h3>Traffic analysis</h3>
+<p>
+The following picture shows a sequence of packets captured by Wireshark on the trunk link connecting switch <i>SW1</i> to the router.
+</p>
+<br><img src="images/cattura-vlan-3.png" alt="packet-capture" width="820"/>
+<br>&nbsp;<br>
+
+<p>Notice that the same ICMP echo request packet sent by <i>PC1</i> towards <i>PC3</i> is seen twice: once untagged on its travel from <i>PC1</i> to the router (packet no. 3) and a second time tagged with VLAN ID 2 on its travel from the router to <i>PC3</i> (packet no. 6).</p>
+<p>Likewise, the same ICMP echo reply packet sent by <i>PC3</i> back to <i>PC1</i> is seen twice: once tagged with VLAN ID 2 on its travel from <i>PC3</i> to the router (packet no. 7) and a second time untagged on its travel from the router to <i>PC1</i> (packet no. 8).
+</p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>24/09/2024</i> by Roberto Canonico</p>
