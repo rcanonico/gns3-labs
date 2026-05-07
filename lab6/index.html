@@ -1,0 +1,205 @@
+<!-- (C) 2022 - Roberto Canonico -->
+<h1>Lab #6</h1>
+<h2>OSPF in a simple topology</h2>
+<p>The purpose of this lab is to show how three different subnets can be connected by means of three routers connected in a triangle topology. <br>
+Routes between subnets are established by means of the OSPF protocol. All the three routers are configured to belong to the same area.</p>
+
+<h3>Preparation steps</h3>
+Before this experiment is executed, it is required that you have previously configured GNS3 to make it able to instantiate a Docker container of a Linux-based router based on the FRR (<a href="https://frrouting.org/">Free Range Routing</a>) software suite, as described in <a href="../lab2">Lab #2</a>.<br>
+In particular, the GNS3 VM in which Docker containers are activated should have:
+<ul>
+<li><b>IP forwarding enabled in the kernel;</b><br> 
+This can be verified by issuing at the router console the command:
+<pre>cat /proc/sys/net/ipv4/ip_forward</pre>
+and verifying that the obtained output is <b>1</b>.<br>
+This setting can be made permanent in the GNS3 VM by adding the line:
+<pre>net.ipv4.ip_forward = 1</pre>
+in the configuration file <b>/etc/sysctl.conf</b> that can be edited with the nano text editor through the command:
+<pre>sudo nano /etc/sysctl.conf</pre> 
+</li>
+</ul> 
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/screenshot-ospf-1.png" alt="lab6-topology" width="500"/>
+<br>&nbsp;<br>
+  <li>When the devices are still inactive, right-click on the R1 router icon and select the <i>Configure</i> option. Then, press <i>Edit</i> to modify the R1 router's network configuration.<br>
+      Modify R1's interfaces configuration as illustrated in the following picture.<br>
+<img src="images/R1-network-conf.png" alt="R1-configuration" width="520"/><br>
+Then, click the "Advanced" tab and add <code>/etc/frr</code> to the <i>Additional directories to make persistent</i>.
+  </li>
+  <li>Right-click on the R2 router icon and select the <i>Configure</i> option. Then press <i>Edit</i> to modify the R2 router's network configuration.<br>
+      Modify R2's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/R2-network-conf.png" alt="R2-configuration" width="520"/><br>
+Then, click the "Advanced" tab and add <code>/etc/frr</code> to the <i>Additional directories to make persistent</i>.
+  </li>
+  <li>Right-click on the R3 router icon and select the <i>Configure</i> option. Then press <i>Edit</i> to modify the R3 router's network configuration.<br>
+      Modify R3's interfaces configuration as illustrated in the following picture.</li>
+<br><img src="images/R3-network-conf.png" alt="R3-configuration" width="520"/><br>
+Then, click the "Advanced" tab and add <code>/etc/frr</code> to the <i>Additional directories to make persistent</i>.
+  </li>
+<br>&nbsp;<br>
+
+  <li>Start all devices.</li> 
+
+<br>
+
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 192.168.10.2/24 192.168.10.1</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 192.168.20.2/24 192.168.20.1</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 192.168.30.2/24 192.168.30.1</pre></li>
+
+  <li>Open R1 auxiliary console. At the root command prompt:
+<pre>echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf</pre>
+Then edit the <code>/etc/frr/daemons</code> file to ensure that the ospfd daemon is enabled.
+<pre>ospfd=yes</pre>
+Edit the <code>/etc/frr/frr.conf</code> file to make it appear as the following:
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R1
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface eth0
+ ip address 192.168.10.1/24
+ ip ospf passive
+!
+interface eth1
+ ip address 10.10.10.1/24
+!
+interface eth2
+ ip address 10.10.20.1/24
+!
+interface lo
+ ip address 10.0.0.1/32
+ ip ospf passive
+!
+router ospf
+ network 192.168.10.0/24 area 0.0.0.0
+ network 10.10.10.0/24   area 0.0.0.0
+ network 10.10.20.0/24   area 0.0.0.0
+!
+line vty
+!
+</pre>
+Fix <code>/etc/frr/frr.conf</code> ownership:
+<pre>chown frr:frr /etc/frr/frr.conf</pre>
+Finally, stop and restart the R1 container to start the ospfd daemon.
+  </li>
+
+  <li>Open R2 auxiliary console. At the root command prompt:
+<pre>echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf</pre>
+Then edit the <code>/etc/frr/daemons</code> file to ensure that the ospfd daemon is enabled.
+<pre>ospfd=yes</pre>
+Edit the <code>/etc/frr/frr.conf</code> file to make it appear as the following:
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R2
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface eth0
+ ip address 192.168.20.1/24
+ ip ospf passive
+!
+interface eth1
+ ip address 10.10.10.2/24
+!
+interface eth2
+ ip address 10.10.30.1/24
+!
+interface lo
+ ip address 10.0.0.2/32
+ ip ospf passive
+!
+router ospf
+ network 192.168.20.0/24 area 0.0.0.0
+ network 10.10.10.0/24   area 0.0.0.0
+ network 10.10.30.0/24   area 0.0.0.0
+!
+line vty
+!
+</pre>
+Fix <code>/etc/frr/frr.conf</code> ownership:
+<pre>chown frr:frr /etc/frr/frr.conf</pre>
+Finally, stop and restart the R2 container to start the ospfd daemon.
+  </li>
+
+  <li>Open R3 auxiliary console. At the root command prompt:
+<pre>echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf</pre>
+Then edit the <code>/etc/frr/daemons</code> file to ensure that the ospfd daemon is enabled.
+<pre>ospfd=yes</pre>
+Finally, edit the <code>/etc/frr/frr.conf</code> file to make it appear as the following:
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R3
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface eth0
+ ip address 192.168.30.1/24
+ ip ospf passive
+!
+interface eth1
+ ip address 10.10.20.2/24
+!
+interface eth2
+ ip address 10.10.30.2/24
+!
+interface lo
+ ip address 10.0.0.3/32
+ ip ospf passive
+!
+router ospf
+ network 192.168.30.0/24 area 0.0.0.0
+ network 10.10.20.0/24   area 0.0.0.0
+ network 10.10.30.0/24   area 0.0.0.0
+!
+line vty
+!
+</pre>
+Fix <code>/etc/frr/frr.conf</code> ownership:
+<pre>chown frr:frr /etc/frr/frr.conf</pre>
+Finally, stop and restart the R3 container to start the ospfd daemon.
+  </li>
+
+ <li>In PC1 terminal execute the command:
+<pre>ping 192.168.20.2</pre>
+      and verify that answers are received from PC2.<br>
+In PC1 terminal execute the command:
+<pre>ping 192.168.30.2</pre>
+      and verify that answers are received from PC3.
+ </li>
+<br><img src="images/pc1-pings.png" alt="PC1-pings" width="520"/><br>
+
+ <li>In PC1 terminal execute the command:
+<pre>trace 192.168.20.2</pre>
+      and verify that packets are routed through R1 and R2 (shortest path).<br>
+In PC1 terminal execute the command:
+<pre>trace 192.168.30.2</pre>
+      and verify that packets are routed through R1 and R3 (shortest path).
+ </li>
+<br><img src="images/pc1-traces.png" alt="PC1-traces" width="520"/><br>
+
+ <li>Right-click on the link connecting R1 and R2 and suspend the link.
+<pre>trace 192.168.20.2</pre>
+      and verify that packets are routed through R1, R3 and R2.
+ </li>
+<br><img src="images/pc1-traces-2.png" alt="PC1-traces-alt" width="520"/>
+<br>
+<p>
+</p>
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>
