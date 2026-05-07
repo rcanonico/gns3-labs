@@ -1,0 +1,459 @@
+<!-- (C) 2024 - Roberto Canonico -->
+<h1>Lab #7</h1>
+<h2>OSPF in a multi-area network</h2>
+<p>The purpose of this lab is to show how routing in complex topologies can be managed by decomposing them in areas.<br>
+First of all, we solve the network addressing problem, by subnetting a block of 128 IPv4 addresses in a suitable number of subnets.<br>
+Then, we create the network topology in GNS3 and configure the routers.<br>
+Finally, we analyze the routes established by OSPF.</p>
+
+<h3>Subnetting</h3>
+The network topology we want to create in GNS3 is depicted in the following picture.<br><br>
+<img src="images/lab7-topology-sketch.png" alt="lab7-topology-sketch" width="500"/>
+<br>
+The network consists of 7 routers and 5 end systems. Routers are connected by means of 9 point-to-point links.<br>
+For the sake of OSPF routing, we partition the routers in three areas.<br> 
+<b>Area 0</b> consists of routers R4, R5 and R6.<br>
+<b>Area 1</b> consists of routers R0 and R1.<br>
+<b>Area 2</b> consists of routers R2 and R3.<br>
+As the picture above shows, network addressing requires 14 subnets.<br>
+We assume that a block of 128 contiguous IPv4 addresses is available: <code>192.168.24.0/25</code>.<br>
+We perform subnetting with variable length mask with:
+<ul>
+<li>netmask /30 for 9 point to point links between routers;</li>
+<li>netmask /28 for 5 links from routers to endpoints.</li>
+</ul>
+The following table shows how the available address range can be split into the required 14 subnets.<br>
+<img src="images/lab7-subnets.png" alt="lab7-subnets" width="500"/>
+<br>
+Notice that, after subnetting, a few small address ranges remain unused.
+
+<h3>Preparation steps</h3>
+Before this experiment is executed, it is required that you have previously configured GNS3 to make it able to instantiate a Docker container of a Linux-based router based on the FRR (<a href="https://frrouting.org/">Free Range Routing</a>) software suite, as described in <a href="../lab2">Lab #2</a>.<br>
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/lab7-topology.png" alt="lab7-topology" width="500"/>
+<br>&nbsp;<br>
+  <li>When the devices are still inactive, for each of the routers (R0, R1, R2, R3, R4, R5 and R6), right-click on the router icon and select the <i>Configure</i> option. <br>
+Then, click the "Advanced" tab and add <code>/etc/frr</code> to the <i>Additional directories to make persistent</i>.
+  </li>
+  <li>Start all devices.</li> 
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 192.168.24.66/28 192.168.24.65
+save</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 192.168.24.82/28 192.168.24.681
+save</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 192.168.24.98/28 192.168.24.97
+save</pre></li>
+ <li>Open PC4 terminal and execute the command:
+<pre>ip 192.168.24.114/28 192.168.24.113
+save</pre></li>
+ <li>Open PC5 terminal and execute the command:
+<pre>ip 192.168.24.50/28 192.168.24.49
+save</pre></li>
+
+  <li>Open R0 auxiliary console. At the root command prompt:
+<pre>
+sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R0
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.1/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.65/28
+  ip ospf passive
+!
+interface eth1
+  ip address 192.168.24.25/30
+!
+interface eth2
+  ip address 192.168.24.18/30
+!
+router ospf
+  ospf router-id 1.1.1.1
+  network 192.168.24.16/30 area 1
+  network 192.168.24.24/30 area 1
+  network 192.168.24.64/28 area 1
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R0 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+  <li>Open R1 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R1
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.2/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.81/28
+  ip ospf passive
+!
+interface eth1
+  ip address 192.168.24.26/30
+!
+interface eth2
+  ip address 192.168.24.22/30
+!
+router ospf
+  ospf router-id 1.1.1.2
+  network 192.168.24.20/30 area 1
+  network 192.168.24.24/30 area 1
+  network 192.168.24.80/28 area 1
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R1 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+  <li>Open R2 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R2
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.3/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.97/28
+  ip ospf passive
+!
+interface eth1
+  ip address 192.168.24.41/30
+!
+interface eth2
+  ip address 192.168.24.34/30
+!
+router ospf
+  ospf router-id 1.1.1.3
+  network 192.168.24.32/30 area 2
+  network 192.168.24.40/30 area 2
+  network 192.168.24.96/28 area 2
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R2 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+  <li>Open R3 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R3
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.4/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.113/28
+  ip ospf passive
+!
+interface eth1
+  ip address 192.168.24.42/30
+!
+interface eth2
+  ip address 192.168.24.38/30
+!
+router ospf
+  ospf router-id 1.1.1.4
+  network 192.168.24.36/30 area 2
+  network 192.168.24.40/30 area 2
+  network 192.168.24.112/28 area 2
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R3 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+  <li>Open R4 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R4
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.5/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.17/30
+!
+interface eth1
+  ip address 192.168.24.21/30
+!
+interface eth2
+  ip address 192.168.24.9/30
+!
+interface eth3
+  ip address 192.168.24.2/30
+!
+router ospf
+  ospf router-id 1.1.1.5
+  network 192.168.24.0/30 area 0
+  network 192.168.24.8/30 area 0
+  network 192.168.24.16/30 area 1
+  network 192.168.24.20/30 area 1
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R4 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+  <li>Open R5 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R5
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.6/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.33/30
+!
+interface eth1
+  ip address 192.168.24.37/30
+!
+interface eth2
+  ip address 192.168.24.10/30
+!
+interface eth3
+  ip address 192.168.24.6/30
+!
+router ospf
+  ospf router-id 1.1.1.6
+  network 192.168.24.4/30 area 0
+  network 192.168.24.8/30 area 0
+  network 192.168.24.32/30 area 2
+  network 192.168.24.36/30 area 2
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R5 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+  <li>Open R6 auxiliary console. At the root command prompt:
+<pre>sed -i '/^ospfd/s/no/yes/' /etc/frr/daemons
+echo "service integrated-vtysh-config" > /etc/frr/vtysh.conf
+chown frr:frr /etc/frr/vtysh.conf
+touch /etc/frr/frr.conf
+chown frr:frr /etc/frr/frr.conf
+vi /etc/frr/frr.conf
+</pre>
+Use the <code>vi</code> editor to edit the <code>/etc/frr/frr.conf</code> file as follows.
+<pre>
+frr version 8.1_git
+frr defaults traditional
+hostname R6
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface lo
+ ip address 1.1.1.7/32
+ ip ospf passive
+!
+interface eth0
+  ip address 192.168.24.1/30
+!
+interface eth1
+  ip address 192.168.24.5/30
+!
+interface eth2
+  ip address 192.168.24.49/28
+  ip ospf passive
+!
+router ospf
+  ospf router-id 1.1.1.7
+  network 192.168.24.0/30 area 0
+  network 192.168.24.4/30 area 0
+  network 192.168.24.48/28 area 0
+!
+line vty
+!
+</pre>
+Finally, stop and restart the R5 container to start the <i>ospfd</i> daemon.
+  </li>
+<br>
+
+</ol>
+<h3>Traffic generation and results analysis</h3>
+<ul>
+ <li>In PC1 terminal execute the following commands:
+<pre>ping 192.168.24.82 -c 2</pre>
+      and verify that answers are received from PC2.<br>
+<pre>ping 192.168.24.98 -c 2</pre>
+      and verify that answers are received from PC3.<br>
+<pre>ping 192.168.24.114 -c 2</pre>
+      and verify that answers are received from PC4.<br>
+<pre>ping 192.168.24.50 -c 2</pre>
+      and verify that answers are received from PC5.<br>
+ </li>
+<br><img src="images/pc1-pings.png" alt="PC1-pings" width="520"/><br>
+<br>
+ <li>In PC1 terminal execute the following commands:
+<pre>trace 192.168.24.82 -P 1</pre>
+      and verify that packets to PC2 are routed through R0 and R1 (shortest path).<br>
+<pre>trace 192.168.24.98 -P 1</pre>
+      and verify that packets to PC3 are routed through R0, R4, R5 and R2 (shortest path).<br>
+<pre>trace 192.168.24.114 -P 1</pre>
+      and verify that packets to PC4 are routed through R0, R4, R5 and R3 (shortest path).<br>
+<pre>trace 192.168.24.50 -P 1</pre>
+      and verify that packets to PC5 are routed through R0, R4 and R6 (shortest path).<br>
+ </li>
+<br><img src="images/pc1-traces.png" alt="PC1-traces" width="520"/><br>
+<br>
+
+ <li>Right-click on the link connecting R0 and R1 and suspend the link.<br>
+ Wait about 30 seconds until OSPF converges to an alternative route.</li>
+ <li>In PC1 terminal execute the following command:
+<pre>trace 192.168.24.82 -P 1</pre>
+      and verify that packets are now routed through R0, R4 and R1.
+ </li>
+<br><img src="images/pc1-traces-2.png" alt="PC1-traces-alt2" width="520"/><br>
+<br>
+
+ <li>Right-click on the link connecting R4 and R5 and suspend the link.<br>
+ Wait about 30 seconds until OSPF converges to an alternative route.</li>
+ <li>In PC1 terminal execute the following command:
+<pre>trace 192.168.24.98 -P 1</pre>
+      and verify that packets are now routed through R0, R4, R6, R5 and R2.
+ </li>
+<br><img src="images/pc1-traces-3.png" alt="PC1-traces-alt3" width="520"/><br>
+<br>
+
+ <li>Right-click on the link connecting R3 and R5 and suspend the link.<br>
+ Wait about 30 seconds until OSPF converges to an alternative route.</li>
+ <li>In PC1 terminal execute the following command:
+<pre>trace 192.168.24.114 -P 1</pre>
+      and verify that packets are now routed through R0, R4, R6, R5, R2 and R3.
+ </li>
+<br><img src="images/pc1-traces-4.png" alt="PC1-traces-alt4" width="520"/><br>
+<br>
+
+ <li>Right-click on the suspended links and resume them.<br>
+ Wait about 30 seconds until OSPF converges again.</li>
+
+ <li>In R0 auxiliary console execute the following commands:
+<pre>vtysh
+R0# show ip route
+</pre>
+The output should be as follows.<br>
+<pre>
+C>* 1.1.1.1/32 is directly connected, lo, 01:51:11
+O>* 192.168.24.0/30 [110/20000] via 192.168.24.17, eth2, weight 1, 00:56:56
+O>* 192.168.24.4/30 [110/30000] via 192.168.24.17, eth2, weight 1, 00:42:02
+O>* 192.168.24.8/30 [110/20000] via 192.168.24.17, eth2, weight 1, 00:03:25
+O   192.168.24.16/30 [110/10000] is directly connected, eth2, weight 1, 01:51:11
+C>* 192.168.24.16/30 is directly connected, eth2, 01:51:12
+O>* 192.168.24.20/30 [110/20000] via 192.168.24.17, eth2, weight 1, 00:03:30
+  *                              via 192.168.24.26, eth1, weight 1, 00:03:30
+O   192.168.24.24/30 [110/10000] is directly connected, eth1, weight 1, 00:03:30
+C>* 192.168.24.24/30 is directly connected, eth1, 01:51:12
+O>* 192.168.24.32/30 [110/30000] via 192.168.24.17, eth2, weight 1, 00:03:32
+O>* 192.168.24.36/30 [110/30000] via 192.168.24.17, eth2, weight 1, 00:03:32
+O>* 192.168.24.40/30 [110/40000] via 192.168.24.17, eth2, weight 1, 00:03:32
+O>* 192.168.24.48/30 [110/30000] via 192.168.24.17, eth2, weight 1, 00:34:17
+O   192.168.24.64/28 [110/10000] is directly connected, eth0, weight 1, 01:51:11
+C>* 192.168.24.64/28 is directly connected, eth0, 01:51:12
+O>* 192.168.24.80/28 [110/20000] via 192.168.24.26, eth1, weight 1, 00:03:30
+O>* 192.168.24.96/28 [110/40000] via 192.168.24.17, eth2, weight 1, 00:03:32
+O>* 192.168.24.112/28 [110/40000] via 192.168.24.17, eth2, weight 1, 00:03:18
+</pre>
+In R0's routing table there is an entry for each of the 14 subnets.<br>
+Three subnets are directly connected to R0 interfaces.<br>
+All the others can be reached either via R1 (192.168.24.26) or R4 (192.168.24.17).<br>
+In particular, subnet 192.168.24.20/30 can be reached with the same cost via either one of R1 or R4. 
+</ul>
+
+<hr/>
+<p><a href="lab7-ospf.pdf">Lab notes in PDF</a></p>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>October 3, 2024</i> by Roberto Canonico</p>
