@@ -1,0 +1,82 @@
+<!-- (C) 2022 - Roberto Canonico -->
+<h1>Lab #10</h1>
+<h2>Two VLANs spanning two switches</h2>
+
+<p>The purpose of this lab is to show how two VLANs can be extended across two different switches.</p>
+
+<h3>Experiment steps</h3>
+<ol>
+  <li>Recreate the following topology in GNS3. Choose the &quot;GNS3 VM&quot; server to instantiate all the devices of this lab.</li>
+<img src="images/screenshot-vlan-2.png" alt="lab6-topology" width="500"/>
+<br>The two switches SW1 and SW2 are connected by means of a trunk link, i.e. a link connecting ports of the two switches configured in trunk mode (802.1q).<br>&nbsp;<br>
+  <li>When the devices are still inactive, right-click on the <i>SW1</i> switch icon and configure it as follows:</li>
+  <ul>
+  <li>port 0 configured in trunk mode (802.1q) and assigned natively to VLAN 1;</li>
+  <li>ports 1, 2, 3, 4 configured in access mode and assigned to VLAN 1 (default VLAN);</li>
+  <li>ports 5, 6, 7 configured in access mode and assigned to VLAN 2.</li>
+<br><img src="images/sw1-config-768x531.png" alt="switch-configuration" width="520"/>
+<br>&nbsp;<br>
+  </ul>
+  <li>Likewise, right-click on the <i>SW2</i> switch icon and configure it exactly as SW1, i.e. as follows:</li>
+  <ul>
+  <li>port 0 configured in trunk mode (802.1q) and assigned natively to VLAN 1;</li>
+  <li>ports 1, 2, 3, 4 configured in access mode and assigned to VLAN 1 (default VLAN);</li>
+  <li>ports 5, 6, 7 configured in access mode and assigned to VLAN 2.</li>
+  </ul>
+<br>
+Notice that the trunk link is connected to port 0 of both SW1 and SW2.<br>
+VLAN 1 traffic is transmitted as untagged frames on the trunk link.<br>
+VLAN 2 traffic is transmitted as 802.1q tagged frames with VLAN ID 2.<br>
+&nbsp;<br>
+  <li>Start all devices.</li> 
+  <li>Start capture on link connecting <i>SW1</i> to <i>SW2</i>.</li> 
+
+ <li>Open PC1 terminal and execute the command:
+<pre>ip 10.10.1.2/24 10.10.1.1</pre></li>
+ <li>Open PC2 terminal and execute the command:
+<pre>ip 10.10.1.3/24 10.10.1.1</pre></li>
+ <li>Open PC3 terminal and execute the command:
+<pre>ip 10.10.2.2/24 10.10.2.1</pre></li>
+ <li>Open PC4 terminal and execute the command:
+<pre>ip 10.10.2.3/24 10.10.2.1</pre></li>
+
+<p>
+Notice that PC1 and PC2 are configured with a default gateway address 10.10.1.1, but, in fact, this address is not associated to any device.<br>
+Likewise, PC3 and PC4 are configured with a default gateway address 10.10.2.1, but, in fact, this address is not associated to any device.
+</p>
+
+
+ <li>In PC1 terminal execute the command:
+<pre>ping 10.10.1.3</pre>
+      and verify that answers are received from PC2.
+<pre>ping 10.10.2.2</pre>
+      and verify that answers are NOT received from PC3.
+ </li>
+<br><img src="images/PC1-vlan-1.png" alt="PC1-terminal" width="520"/>
+<br>&nbsp;<br>
+
+ <li>In PC3 terminal execute the command:
+<pre>ping 10.10.2.3</pre>
+      and verify that answers are received from PC4.
+<pre>ping 10.10.1.2</pre>
+      and verify that answers are NOT received from PC1.
+ </li>
+</ol>
+
+<p>
+Since there is no inter-VLAN routing, the two VLANs are isolated.<br>
+Hence, PC1 can only ping PC2, while PC3 can only ping PC4.
+</p>
+
+<h3>Traffic analysis</h3>
+<p>
+The following picture shows a sequence of packets captured by Wireshark on the trunk link connecting switch SW1 with SW2 when PC1 pings PC2.
+</p>
+<br><img src="images/cattura-vlan-2-1200x326.png" alt="packet-capture" width="820"/>
+<br>&nbsp;<br>
+
+
+<hr/>
+<a href="..">Return to list of labs</a><br>
+<p>Copyright (c) 2024 - Roberto Canonico</p>
+<p>Last updated: <i>24/09/2024</i> by Roberto Canonico</p>
